@@ -15,13 +15,4 @@ services:
     depends_on:
       - backend
 
-  backend:
-    build:
-      context: ../backend
-      dockerfile: ../docker/Dockerfile.backend
-    ports:
-      - "8000:8000"
-    volumes:
-      - ../backend:/app
-    env_file:
-      - ../backend/.env
+
