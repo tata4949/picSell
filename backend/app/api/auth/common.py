@@ -1,3 +1,10 @@
+"""Shared authentication utilities and models.
+
+This module contains the Pydantic models used by auth endpoints
+and helper functions for password hashing, token generation,
+and current-user lookup.
+"""
+
 import base64
 import hashlib
 import hmac
@@ -8,15 +15,15 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
-from fastapi import APIRouter, Depends, Header, HTTPException, status
+from fastapi import Depends, Header, HTTPException, status
 from pydantic import BaseModel, EmailStr, Field
+from firebase_admin import firestore
 
 from app.core.firebase import db
 
-router = APIRouter()
-
 ACCESS_TOKEN_SECRET = os.getenv("ACCESS_TOKEN_SECRET", os.getenv("SECRET_KEY", "change-me"))
-ACCESS_TOKEN_EXPIRES_IN = int(os.getenv("ACCESS_TOKEN_EXPIRES_IN", "3600"))
+ACCESS_TOKEN_EXPIRES_IN = int(os.getenv("ACCESS_TOKEN_EXPIRES_IN", "3600"))  # default 1 hour
+REFRESH_TOKEN_EXPIRES_IN = int(os.getenv("REFRESH_TOKEN_EXPIRES_IN", str(60 * 60 * 24 * 30)))  # default 30 days
 
 
 class SignUpRequest(BaseModel):
@@ -40,7 +47,17 @@ class UserResponse(BaseModel):
 
 class AuthResponse(BaseModel):
     access_token: str
+    refresh_token: str
     user: UserResponse
+
+
+class RefreshRequest(BaseModel):
+    refresh_token: str
+
+
+class RefreshResponse(BaseModel):
+    access_token: str
+    refresh_token: str
 
 
 def _base64url_encode(data: bytes) -> str:
@@ -131,6 +148,36 @@ def _find_user_by_uid(uid: str):
     return document if document.exists else None
 
 
+def _hash_refresh_token(refresh_token: str) -> str:
+    return hmac.new(
+        ACCESS_TOKEN_SECRET.encode("utf-8"),
+        refresh_token.encode("utf-8"),
+        hashlib.sha256,
+    ).hexdigest()
+
+
+def _save_refresh_token(uid: str, refresh_token: str) -> None:
+    refresh_token_hash = _hash_refresh_token(refresh_token)
+    refresh_expires_at = datetime.now(timezone.utc).timestamp() + REFRESH_TOKEN_EXPIRES_IN
+    db.collection("users").document(uid).update({
+        "refresh_token_hash": refresh_token_hash,
+        "refresh_token_expires_at": refresh_expires_at,
+    })
+
+
+def _find_user_by_refresh_token(refresh_token: str):
+    refresh_hash = _hash_refresh_token(refresh_token)
+    query = db.collection("users").where("refresh_token_hash", "==", refresh_hash).limit(1).stream()
+    return next(iter(query), None)
+
+
+def _clear_refresh_token(uid: str) -> None:
+    db.collection("users").document(uid).update({
+        "refresh_token_hash": firestore.DELETE_FIELD,
+        "refresh_token_expires_at": firestore.DELETE_FIELD,
+    })
+
+
 def _create_user(email: str, password: str, display_name: str) -> Dict[str, Any]:
     uid = str(uuid.uuid4())
     password_hash = _hash_password(password)
@@ -153,6 +200,17 @@ def _create_token_for_user(uid: str) -> str:
         "exp": int(datetime.now(timezone.utc).timestamp()) + ACCESS_TOKEN_EXPIRES_IN,
     }
     return _build_access_token(payload)
+
+
+def _create_refresh_token() -> str:
+    return secrets.token_urlsafe(32)
+
+
+def _issue_token_pair(uid: str) -> Dict[str, str]:
+    access_token = _create_token_for_user(uid)
+    refresh_token = _create_refresh_token()
+    _save_refresh_token(uid, refresh_token)
+    return {"access_token": access_token, "refresh_token": refresh_token}
 
 
 def _get_current_user(authorization: Optional[str] = Header(None)) -> UserResponse:
@@ -186,41 +244,3 @@ def _get_current_user(authorization: Optional[str] = Header(None)) -> UserRespon
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
     return _user_response_from_doc(document)
-
-
-@router.post("/signup", response_model=AuthResponse, status_code=status.HTTP_201_CREATED)
-def signup(payload: SignUpRequest) -> AuthResponse:
-    if _find_user_by_email(payload.email) is not None:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email is already registered")
-
-    user_data = _create_user(payload.email, payload.password, payload.display_name)
-    access_token = _create_token_for_user(user_data["uid"])
-    user = UserResponse(
-        uid=user_data["uid"],
-        email=user_data["email"],
-        display_name=user_data["display_name"],
-        plan=user_data["plan"],
-        created_at=user_data["created_at"],
-    )
-    return AuthResponse(access_token=access_token, user=user)
-
-
-@router.post("/login", response_model=AuthResponse)
-def login(payload: LoginRequest) -> AuthResponse:
-    document = _find_user_by_email(payload.email)
-    if document is None:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password")
-
-    user_data = document.to_dict() or {}
-    password_hash = user_data.get("password_hash")
-    if password_hash is None or not _verify_password(payload.password, password_hash):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password")
-
-    access_token = _create_token_for_user(user_data["uid"])
-    user = _user_response_from_doc(document)
-    return AuthResponse(access_token=access_token, user=user)
-
-
-@router.get("/me", response_model=UserResponse)
-def me(current_user: UserResponse = Depends(_get_current_user)) -> UserResponse:
-    return current_user
