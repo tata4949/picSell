@@ -2,15 +2,49 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 const G = "#2A7A50"; const G2 = "#34A36A"; const GRAY = "#8A8A8E";
-const DARK = "#1C1C1E"; const BORDER = "#F0F0F0"; const BG = "#F5F8F6";
+const DARK = "#1C1C1E"; const BORDER = "#F0F0F0";
+
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
 export default function Login() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [exiting, setExiting] = useState(false);
+
+  const handleLogin = async () => {
+    setError("");
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.detail || "ログインに失敗しました");
+        return;
+      }
+      localStorage.setItem("access_token", data.access_token);
+      localStorage.setItem("user", JSON.stringify(data.user));
+      setExiting(true);
+      setTimeout(() => navigate("/home"), 400);
+    } catch (e) {
+      setError("通信エラーが発生しました");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <div style={s.root}>
+    <div style={{
+      ...s.root,
+      transform: exiting ? "translateY(-100%)" : "translateY(0)",
+      transition: exiting ? "transform 0.4s cubic-bezier(0.4,0,0.2,1)" : "none",
+    }}>
       <div style={s.status}>
         <span style={s.statusTime}>12:30</span>
         <span style={{ color:"white", fontSize:12 }}>▲▲ 🔋</span>
@@ -21,7 +55,6 @@ export default function Login() {
       </div>
 
       <div style={s.scroll}>
-        {/* ロゴ */}
         <div style={s.logoArea}>
           <div style={s.logoCircle}>
             <CamIcon size={36} color="white" />
@@ -30,7 +63,6 @@ export default function Login() {
           <p style={s.logoSub}>写真1枚で不用品を賢く手放そう</p>
         </div>
 
-        {/* フォーム */}
         <div style={s.card}>
           <div style={s.field}>
             <p style={s.fieldLabel}>メールアドレス</p>
@@ -45,15 +77,20 @@ export default function Login() {
             <p style={s.required}>必須</p>
           </div>
 
+          {error && <p style={s.errorText}>{error}</p>}
+
           <p style={s.forgot}>🔒 パスワードを忘れた方</p>
 
-          <button style={s.btnPrimary} onClick={() => navigate("/home")}>ログイン</button>
+          <button style={{ ...s.btnPrimary, opacity: loading ? 0.6 : 1 }}
+            onClick={handleLogin} disabled={loading}>
+            {loading ? "ログイン中..." : "ログイン"}
+          </button>
 
           <p style={s.orText}>または</p>
 
           <div style={s.socialRow}>
-            <button style={s.btnSocial} onClick={() => navigate("/home")}> Appleでログイン</button>
-            <button style={{ ...s.btnSocial, ...s.btnSocialDark }} onClick={() => navigate("/home")}>Googleでログイン</button>
+            <button style={s.btnSocial}>Appleでログイン</button>
+            <button style={{ ...s.btnSocial, ...s.btnSocialDark }}>Googleでログイン</button>
           </div>
 
           <p style={s.registerLink} onClick={() => navigate("/register")}>
@@ -75,14 +112,14 @@ function CamIcon({ size, color }) {
 }
 
 const s = {
-  root: { width:"100%", height:"100dvh", background:G, display:"flex", flexDirection:"column", fontFamily:"'Hiragino Sans','Noto Sans JP',sans-serif", maxWidth:430, margin:"0 auto" },
+  root: { width:"100%", height:"100dvh", background:G, display:"flex", flexDirection:"column", fontFamily:"'Hiragino Sans','Noto Sans JP',sans-serif", maxWidth:430, margin:"0 auto", overflow:"hidden" },
   status: { background:G, display:"flex", justifyContent:"space-between", padding:"12px 24px 0", flexShrink:0 },
   statusTime: { color:"white", fontSize:14, fontWeight:600 },
   header: { background:G, padding:"8px 20px 16px", display:"flex", justifyContent:"space-between", alignItems:"center", flexShrink:0 },
   headerTitle: { color:"white", fontSize:20, fontWeight:800 },
   badge: { background:"white", borderRadius:8, padding:"4px 10px" },
   badgeText: { color:G, fontSize:13, fontWeight:700 },
-  scroll: { flex:1, overflowY:"auto", padding:"0 0 40px" },
+  scroll: { flex:1, overflowY:"auto", overflowX:"hidden", padding:"0 0 40px", WebkitOverflowScrolling:"touch" },
   logoArea: { display:"flex", flexDirection:"column", alignItems:"center", padding:"32px 0 24px", gap:10 },
   logoCircle: { width:72, height:72, borderRadius:36, background:`linear-gradient(135deg,${G} 0%,${G2} 100%)`, display:"flex", alignItems:"center", justifyContent:"center", boxShadow:"0 6px 20px rgba(42,122,80,0.35)" },
   logoText: { fontSize:28, fontWeight:800, color:"white", margin:0 },
@@ -99,4 +136,5 @@ const s = {
   btnSocial: { flex:1, padding:"11px 6px", background:"white", color:DARK, border:`1.5px solid ${BORDER}`, borderRadius:12, fontSize:12, fontWeight:700, fontFamily:"inherit", cursor:"pointer" },
   btnSocialDark: { background:"#1C1C1E", color:"white", border:"none" },
   registerLink: { fontSize:12, color:GRAY, textAlign:"center", cursor:"pointer", marginTop:4 },
+  errorText: { fontSize:13, color:"#D04040", margin:"0 0 12px", textAlign:"center" },
 };

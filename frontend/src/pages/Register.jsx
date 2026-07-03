@@ -4,11 +4,56 @@ import { useNavigate } from "react-router-dom";
 const G = "#2A7A50"; const G2 = "#34A36A"; const GRAY = "#8A8A8E";
 const DARK = "#1C1C1E"; const BORDER = "#F0F0F0";
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
+
 export default function Register() {
   const navigate = useNavigate();
+  const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleRegister = async () => {
+    setError("");
+
+    // パスワード一致チェック
+    if (password !== confirm) {
+      setError("パスワードが一致しません");
+      return;
+    }
+    if (password.length < 8) {
+      setError("パスワードは8文字以上で入力してください");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/auth/signup`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+          password,
+          display_name: displayName,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.detail || "登録に失敗しました");
+        return;
+      }
+      // トークンとユーザー情報を保存
+      localStorage.setItem("access_token", data.access_token);
+      localStorage.setItem("user", JSON.stringify(data.user));
+      navigate("/home");
+    } catch (e) {
+      setError("通信エラーが発生しました");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div style={s.root}>
@@ -27,9 +72,10 @@ export default function Register() {
         </div>
         <div style={s.card}>
           {[
-            { label:"メールアドレス", ph:"example@example.com", val:email,    set:setEmail,    type:"email"    },
-            { label:"パスワード",     ph:"半角英数字で入力",      val:password, set:setPassword, type:"password" },
-            { label:"パスワード（確認）", ph:"もう一度同じパスワードを入力", val:confirm, set:setConfirm, type:"password" },
+            { label:"ニックネーム",       ph:"PicSellユーザー",          val:displayName, set:setDisplayName, type:"text"     },
+            { label:"メールアドレス",     ph:"example@example.com",      val:email,       set:setEmail,       type:"email"    },
+            { label:"パスワード",         ph:"半角英数字8文字以上",        val:password,    set:setPassword,    type:"password" },
+            { label:"パスワード（確認）", ph:"もう一度同じパスワードを入力", val:confirm,     set:setConfirm,     type:"password" },
           ].map(({ label, ph, val, set, type }) => (
             <div key={label} style={s.field}>
               <p style={s.fieldLabel}>{label}</p>
@@ -38,11 +84,16 @@ export default function Register() {
             </div>
           ))}
 
-          <button style={s.btnPrimary} onClick={() => navigate("/home")}>登録する</button>
+          {error && <p style={s.errorText}>{error}</p>}
+
+          <button style={{...s.btnPrimary, opacity: loading ? 0.6 : 1}}
+            onClick={handleRegister} disabled={loading}>
+            {loading ? "登録中..." : "登録する"}
+          </button>
           <p style={s.orText}>または</p>
           <div style={s.socialRow}>
-            <button style={s.btnSocial} onClick={() => navigate("/home")}>Appleで登録</button>
-            <button style={{ ...s.btnSocial, ...s.btnSocialDark }} onClick={() => navigate("/home")}>Googleで登録</button>
+            <button style={s.btnSocial}>Appleで登録</button>
+            <button style={{ ...s.btnSocial, ...s.btnSocialDark }}>Googleで登録</button>
           </div>
           <p style={s.loginLink} onClick={() => navigate("/")}>すでにアカウントをお持ちの方はこちら</p>
         </div>
@@ -73,4 +124,5 @@ const s = {
   btnSocial: { flex:1, padding:"11px 6px", background:"white", color:DARK, border:`1.5px solid ${BORDER}`, borderRadius:12, fontSize:12, fontWeight:700, fontFamily:"inherit", cursor:"pointer" },
   btnSocialDark: { background:"#1C1C1E", color:"white", border:"none" },
   loginLink: { fontSize:12, color:GRAY, textAlign:"center", cursor:"pointer" },
+  errorText: { fontSize:13, color:"#D04040", margin:"0 0 12px", textAlign:"center" },
 };
