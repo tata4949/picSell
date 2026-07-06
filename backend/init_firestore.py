@@ -1,23 +1,29 @@
 import firebase_admin
 from firebase_admin import credentials, firestore
-from datetime import datetime
+from datetime import datetime, timezone
 
 cred = credentials.Certificate("serviceAccountKey.json")
 firebase_admin.initialize_app(cred)
 db = firestore.client()
 
+now = datetime.now(timezone.utc)
+uid = "sample_uid"
+assessment_id = "sample_assessment"
+question_id = "sample_question"
+
 # usersコレクション（サンプル1件）
-db.collection("users").document("sample_uid").set({
-    "uid": "sample_uid",
+db.collection("users").document(uid).set({
+    "uid": uid,
     "email": "test@example.com",
     "display_name": "テストユーザー",
     "plan": "free",
-    "created_at": datetime.now()
+    "created_at": now,
+    "updated_at": now,
 })
 
 # assessmentsコレクション（サンプル1件）
-db.collection("assessments").document("sample_assessment").set({
-    "uid": "sample_uid",
+db.collection("assessments").document(assessment_id).set({
+    "uid": uid,
     "photo_url": "https://storage.example.com/sample.jpg",
     "product_name": "Nike Air Max 90",
     "brand": "Nike",
@@ -26,15 +32,18 @@ db.collection("assessments").document("sample_assessment").set({
     "estimated_price_max": 12000,
     "suggestion": "flea",
     "suggestion_reason": "状態が良く高値が期待できます",
-    "created_at": datetime.now()
+    "created_at": now,
+    "updated_at": now,
 })
 
-# questionsコレクション（サンプル1件）
-db.collection("questions").document("sample_question").set({
-    "assessment_id": "sample_assessment",
-    "question": "商品の状態を教えてください",
-    "answer": "使用感少なめ、目立った傷なし",
-    "created_at": datetime.now()
+# assessments/{assessment_id}/questions サブコレクション（サンプル1件）
+db.collection("assessments").document(assessment_id).collection("questions").document(question_id).set({
+    "id": question_id,
+    "uid": uid,
+    "question": "箱は付属していますか？",
+    "answer": "箱あり、説明書なしです",
+    "created_at": now,
+    "updated_at": now,
 })
 
 print("Firestore初期データ作成完了！")
