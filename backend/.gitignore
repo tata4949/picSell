@@ -1,5 +1,27 @@
+# Python
 __pycache__/
 *.pyc
-.env
-.DS_Store
+*.pyo
+*.pyd
+.Python
+*.egg-info/
 venv/
+.venv/
+
+# 環境変数・機密情報
+.env
+serviceAccountKey.json
+
+# OS
+.DS_Store
+
+# Editor
+.vscode/*
+!.vscode/extensions.json
+.idea
+*.suo
+*.sw?
+
+# ログ
+logs/
+*.log

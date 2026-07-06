@@ -1,0 +1,17 @@
+from fastapi import APIRouter, Depends, HTTPException, status
+
+from app.api.auth.common import UserResponse, _get_current_user
+from app.core.firebase import db
+
+router = APIRouter()
+
+
+@router.delete("/assessments/{assessment_id}/questions/{question_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_question(assessment_id: str, question_id: str, current_user: UserResponse = Depends(_get_current_user)) -> None:
+    document_ref = db.collection("assessments").document(assessment_id).collection("questions").document(question_id)
+    document = document_ref.get()
+    if not document.exists:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Question not found")
+    if document.to_dict().get("uid") != current_user.uid:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized")
+    document_ref.delete()
