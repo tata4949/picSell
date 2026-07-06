@@ -1,6 +1,4 @@
 # PicSell
-<<<<<<< HEAD
-=======
 
 ## このフォルダの構成
 
@@ -18,11 +16,9 @@
 - `docker/`
   - `docker/docker-compose.yml` でバックエンドを起動
   - `docker/Dockerfile.backend` でバックエンド用 Docker イメージを定義
->>>>>>> origin/main-backend
 
 ## 主要なパス
 
-<<<<<<< HEAD
 - [概要](#概要)
 - [前提](#前提)
 - [環境ファイル](#環境ファイル)
@@ -46,7 +42,6 @@
 
 - `frontend/.env.local` を作成します
 - 例:
-=======
 - ルートディレクトリ: `picSell/`
 - バックエンド実行ルート: `picSell/backend/app/main.py`
 - API コントローラー（ルーティング）:
@@ -73,7 +68,6 @@
 ```bash
 cd picSell
 ```
->>>>>>> origin/main-backend
 
 2. `backend/.env` を用意します。
 
@@ -100,7 +94,6 @@ docker compose -f docker/docker-compose.yml up --build -d
 `backend` の環境変数は `backend/.env` に書きます。たとえば最低限のモック実行用に:
 
 ```env
-<<<<<<< HEAD
 VITE_API_BASE_URL=http://localhost:8000
 ```
 
@@ -200,7 +193,6 @@ npm run dev
 - `frontend/.env.local` が存在しないと、Docker Compose は現在の構成では起動に失敗します
 - `backend/.env` は `backend/.env.example` を参考にしてください
 - `USE_MOCK=true` を設定すると、実サービスの API キーが不要なモック構成で起動しやすくなります
-=======
 USE_MOCK=true
 ```
 
@@ -244,4 +236,3 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ## 補足
 
 この README はバックエンド専用の内容です。フロントエンドに関する設定や起動手順は含みません。
->>>>>>> origin/main-backend
