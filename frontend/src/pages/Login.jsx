@@ -28,8 +28,7 @@ export default function Login() {
       const data = await res.json();
       if (!res.ok) {
         const msg = typeof data.detail === "string"
-          ? data.detail
-          : JSON.stringify(data.detail);
+          ? data.detail : JSON.stringify(data.detail);
         setError(msg || "ログインに失敗しました");
         return;
       }
@@ -49,7 +48,6 @@ export default function Login() {
     try {
       const result = await signInWithPopup(auth, provider);
       const idToken = await result.user.getIdToken();
-      // Firebaseのトークンをlocalstorageに保存してホームへ
       localStorage.setItem("access_token", idToken);
       localStorage.setItem("user", JSON.stringify({
         uid: result.user.uid,
@@ -72,13 +70,8 @@ export default function Login() {
       transform: exiting ? "translateY(-100%)" : "translateY(0)",
       transition: exiting ? "transform 0.4s cubic-bezier(0.4,0,0.2,1)" : "none",
     }}>
-      <div style={s.status}>
-        <span style={s.statusTime}>12:30</span>
-        <span style={{ color:"white", fontSize:12 }}>▲▲ 🔋</span>
-      </div>
       <div style={s.header}>
         <span style={s.headerTitle}>ログイン</span>
-        <div style={s.badge}><span style={s.badgeText}>PicSell</span></div>
       </div>
 
       <div style={s.scroll}>
@@ -144,12 +137,8 @@ function CamIcon({ size, color }) {
 
 const s = {
   root: { width:"100%", height:"100dvh", background:G, display:"flex", flexDirection:"column", fontFamily:"'Hiragino Sans','Noto Sans JP',sans-serif", maxWidth:430, margin:"0 auto", overflow:"hidden" },
-  status: { background:G, display:"flex", justifyContent:"space-between", padding:"12px 24px 0", flexShrink:0 },
-  statusTime: { color:"white", fontSize:14, fontWeight:600 },
-  header: { background:G, padding:"8px 20px 16px", display:"flex", justifyContent:"space-between", alignItems:"center", flexShrink:0 },
+  header: { background:G, padding:"16px 20px", display:"flex", alignItems:"center", flexShrink:0 },
   headerTitle: { color:"white", fontSize:20, fontWeight:800 },
-  badge: { background:"white", borderRadius:8, padding:"4px 10px" },
-  badgeText: { color:G, fontSize:13, fontWeight:700 },
   scroll: { flex:1, overflowY:"auto", overflowX:"hidden", padding:"0 0 40px", WebkitOverflowScrolling:"touch" },
   logoArea: { display:"flex", flexDirection:"column", alignItems:"center", padding:"32px 0 24px", gap:10 },
   logoCircle: { width:72, height:72, borderRadius:36, background:`linear-gradient(135deg,${G} 0%,${G2} 100%)`, display:"flex", alignItems:"center", justifyContent:"center", boxShadow:"0 6px 20px rgba(42,122,80,0.35)" },

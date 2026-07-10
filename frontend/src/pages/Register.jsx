@@ -20,15 +20,8 @@ export default function Register() {
 
   const handleRegister = async () => {
     setError("");
-
-    if (password !== confirm) {
-      setError("パスワードが一致しません");
-      return;
-    }
-    if (password.length < 8) {
-      setError("パスワードは8文字以上で入力してください");
-      return;
-    }
+    if (password !== confirm) { setError("パスワードが一致しません"); return; }
+    if (password.length < 8)  { setError("パスワードは8文字以上で入力してください"); return; }
 
     setLoading(true);
     try {
@@ -40,8 +33,7 @@ export default function Register() {
       const data = await res.json();
       if (!res.ok) {
         const msg = typeof data.detail === "string"
-          ? data.detail
-          : JSON.stringify(data.detail);
+          ? data.detail : JSON.stringify(data.detail);
         setError(msg || "登録に失敗しました");
         return;
       }
@@ -88,13 +80,8 @@ export default function Register() {
 
   return (
     <div style={s.root}>
-      <div style={s.status}>
-        <span style={s.statusTime}>12:30</span>
-        <span style={{ color:"white", fontSize:12 }}>▲▲ 🔋</span>
-      </div>
       <div style={s.header}>
         <span style={s.headerTitle}>新規登録</span>
-        <div style={s.badge}><span style={s.badgeText}>PicSell</span></div>
       </div>
 
       <div style={s.scroll}>
@@ -123,12 +110,8 @@ export default function Register() {
           </button>
           <p style={s.orText}>または</p>
           <div style={s.socialRow}>
-            <button style={s.btnSocial} onClick={() => handleSocialLogin(appleProvider)}>
-              Appleで登録
-            </button>
-            <button style={{ ...s.btnSocial, ...s.btnSocialDark }} onClick={() => handleSocialLogin(googleProvider)}>
-              Googleで登録
-            </button>
+            <button style={s.btnSocial} onClick={() => handleSocialLogin(appleProvider)}>Appleで登録</button>
+            <button style={{ ...s.btnSocial, ...s.btnSocialDark }} onClick={() => handleSocialLogin(googleProvider)}>Googleで登録</button>
           </div>
           <p style={s.loginLink} onClick={() => navigate("/login")}>すでにアカウントをお持ちの方はこちら</p>
         </div>
@@ -139,12 +122,8 @@ export default function Register() {
 
 const s = {
   root: { width:"100%", height:"100dvh", background:G, display:"flex", flexDirection:"column", fontFamily:"'Hiragino Sans','Noto Sans JP',sans-serif", maxWidth:430, margin:"0 auto", overflow:"hidden" },
-  status: { background:G, display:"flex", justifyContent:"space-between", padding:"12px 24px 0", flexShrink:0 },
-  statusTime: { color:"white", fontSize:14, fontWeight:600 },
-  header: { background:G, padding:"8px 20px 16px", display:"flex", justifyContent:"space-between", alignItems:"center", flexShrink:0 },
+  header: { background:G, padding:"16px 20px", display:"flex", alignItems:"center", flexShrink:0 },
   headerTitle: { color:"white", fontSize:20, fontWeight:800 },
-  badge: { background:"white", borderRadius:8, padding:"4px 10px" },
-  badgeText: { color:G, fontSize:13, fontWeight:700 },
   scroll: { flex:1, overflowY:"auto", overflowX:"hidden", padding:"0 0 40px", WebkitOverflowScrolling:"touch" },
   logoArea: { padding:"24px 0 16px", textAlign:"center" },
   logoText: { fontSize:32, fontWeight:800, color:"white", margin:0 },

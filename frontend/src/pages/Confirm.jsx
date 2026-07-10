@@ -1,25 +1,24 @@
 import { useNavigate } from "react-router-dom";
-const G = "#2A7A50"; const G2 = "#34A36A"; const BORDER = "#F0F0F0"; const DARK = "#1C1C1E";
+const G = "#2A7A50"; const BORDER = "#F0F0F0";
 
 export default function Confirm() {
   const navigate = useNavigate();
+  const image = sessionStorage.getItem("capturedImage");
+
   return (
     <div style={s.root}>
-      <div style={s.status}>
-        <span style={s.statusTime}>12:30</span>
-        <span style={{ color:"white", fontSize:12 }}>▲▲ 🔋</span>
-      </div>
       <div style={s.header}>
-        <button style={s.backBtn} onClick={() => navigate(-1)}>‹ 確認</button>
-        <div style={s.badge}><span style={s.badgeText}>PicSell</span></div>
+        <button style={s.backBtn} onClick={() => navigate(-1)}>‹ 戻る</button>
       </div>
 
       {/* 画像プレビュー */}
       <div style={s.preview}>
         <div style={s.imgWrap}>
-          {/* src="" に撮影した画像URLをセット */}
-          <img src="" alt="撮影した商品画像" style={s.img} />
-          <p style={s.placeholder}>撮影した商品画像（プレビュー）</p>
+          {image ? (
+            <img src={image} alt="撮影した商品画像" style={s.img} />
+          ) : (
+            <p style={s.placeholder}>画像が見つかりません</p>
+          )}
         </div>
       </div>
 
@@ -37,14 +36,10 @@ export default function Confirm() {
 
 const s = {
   root: { width:"100%", height:"100dvh", background:G, display:"flex", flexDirection:"column", fontFamily:"'Hiragino Sans','Noto Sans JP',sans-serif", maxWidth:430, margin:"0 auto" },
-  status: { background:G, display:"flex", justifyContent:"space-between", padding:"12px 24px 0", flexShrink:0 },
-  statusTime: { color:"white", fontSize:14, fontWeight:600 },
-  header: { background:G, padding:"8px 20px 12px", display:"flex", justifyContent:"space-between", alignItems:"center", flexShrink:0 },
-  backBtn: { background:"none", border:"none", color:"white", fontSize:16, fontWeight:600, cursor:"pointer", fontFamily:"inherit" },
-  badge: { background:"white", borderRadius:8, padding:"4px 10px" },
-  badgeText: { color:G, fontSize:13, fontWeight:700 },
+  header: { background:"transparent", padding:"16px 20px 8px", display:"flex", alignItems:"center", flexShrink:0 },
+  backBtn: { background:"rgba(0,0,0,0.2)", border:"none", color:"white", fontSize:16, fontWeight:600, cursor:"pointer", fontFamily:"inherit", borderRadius:20, padding:"6px 14px" },
   preview: { flex:1, display:"flex", alignItems:"center", justifyContent:"center", padding:20 },
-  imgWrap: { width:"100%", maxHeight:420, borderRadius:18, background:"rgba(255,255,255,0.12)", display:"flex", alignItems:"center", justifyContent:"center", aspectRatio:"4/3", overflow:"hidden" },
+  imgWrap: { width:"100%", maxHeight:460, borderRadius:18, background:"rgba(255,255,255,0.12)", display:"flex", alignItems:"center", justifyContent:"center", aspectRatio:"4/3", overflow:"hidden" },
   img: { width:"100%", height:"100%", objectFit:"cover", display:"block" },
   placeholder: { color:"rgba(255,255,255,0.8)", fontSize:13, textAlign:"center" },
   bottom: { background:"white", borderRadius:"18px 18px 0 0", padding:"20px 20px 36px", flexShrink:0 },
