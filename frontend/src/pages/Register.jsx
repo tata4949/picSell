@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { signInWithPopup } from "firebase/auth";
+import { auth, googleProvider, appleProvider } from "../firebase";
 
 const G = "#2A7A50"; const G2 = "#34A36A"; const GRAY = "#8A8A8E";
 const DARK = "#1C1C1E"; const BORDER = "#F0F0F0";
@@ -14,11 +16,11 @@ export default function Register() {
   const [confirm, setConfirm] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
 
   const handleRegister = async () => {
     setError("");
 
-    // パスワード一致チェック
     if (password !== confirm) {
       setError("パスワードが一致しません");
       return;
@@ -33,27 +35,56 @@ export default function Register() {
       const res = await fetch(`${API_BASE}/auth/signup`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email,
-          password,
-          display_name: displayName,
-        }),
+        body: JSON.stringify({ email, password, display_name: displayName }),
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.detail || "登録に失敗しました");
+        const msg = typeof data.detail === "string"
+          ? data.detail
+          : JSON.stringify(data.detail);
+        setError(msg || "登録に失敗しました");
         return;
       }
-      // トークンとユーザー情報を保存
-      localStorage.setItem("access_token", data.access_token);
-      localStorage.setItem("user", JSON.stringify(data.user));
-      navigate("/home");
+      setSuccess(true);
+      setTimeout(() => navigate("/login"), 2500);
     } catch (e) {
       setError("通信エラーが発生しました");
     } finally {
       setLoading(false);
     }
   };
+
+  const handleSocialLogin = async (provider) => {
+    setError("");
+    try {
+      const result = await signInWithPopup(auth, provider);
+      const idToken = await result.user.getIdToken();
+      localStorage.setItem("access_token", idToken);
+      localStorage.setItem("user", JSON.stringify({
+        uid: result.user.uid,
+        email: result.user.email,
+        display_name: result.user.displayName,
+        plan: "free",
+      }));
+      navigate("/home");
+    } catch (e) {
+      if (e.code !== "auth/popup-closed-by-user") {
+        setError("ログインに失敗しました");
+      }
+    }
+  };
+
+  if (success) {
+    return (
+      <div style={s.root}>
+        <div style={s.successWrap}>
+          <div style={s.successIcon}>✓</div>
+          <p style={s.successTitle}>登録が完了しました！</p>
+          <p style={s.successSub}>ログイン画面に移動します...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={s.root}>
@@ -72,9 +103,9 @@ export default function Register() {
         </div>
         <div style={s.card}>
           {[
-            { label:"ニックネーム",       ph:"PicSellユーザー",          val:displayName, set:setDisplayName, type:"text"     },
-            { label:"メールアドレス",     ph:"example@example.com",      val:email,       set:setEmail,       type:"email"    },
-            { label:"パスワード",         ph:"半角英数字8文字以上",        val:password,    set:setPassword,    type:"password" },
+            { label:"ニックネーム",       ph:"PicSellユーザー",           val:displayName, set:setDisplayName, type:"text"     },
+            { label:"メールアドレス",     ph:"example@example.com",       val:email,       set:setEmail,       type:"email"    },
+            { label:"パスワード",         ph:"半角英数字8文字以上",         val:password,    set:setPassword,    type:"password" },
             { label:"パスワード（確認）", ph:"もう一度同じパスワードを入力", val:confirm,     set:setConfirm,     type:"password" },
           ].map(({ label, ph, val, set, type }) => (
             <div key={label} style={s.field}>
@@ -86,16 +117,20 @@ export default function Register() {
 
           {error && <p style={s.errorText}>{error}</p>}
 
-          <button style={{...s.btnPrimary, opacity: loading ? 0.6 : 1}}
+          <button style={{ ...s.btnPrimary, opacity: loading ? 0.6 : 1 }}
             onClick={handleRegister} disabled={loading}>
             {loading ? "登録中..." : "登録する"}
           </button>
           <p style={s.orText}>または</p>
           <div style={s.socialRow}>
-            <button style={s.btnSocial}>Appleで登録</button>
-            <button style={{ ...s.btnSocial, ...s.btnSocialDark }}>Googleで登録</button>
+            <button style={s.btnSocial} onClick={() => handleSocialLogin(appleProvider)}>
+              Appleで登録
+            </button>
+            <button style={{ ...s.btnSocial, ...s.btnSocialDark }} onClick={() => handleSocialLogin(googleProvider)}>
+              Googleで登録
+            </button>
           </div>
-          <p style={s.loginLink} onClick={() => navigate("/")}>すでにアカウントをお持ちの方はこちら</p>
+          <p style={s.loginLink} onClick={() => navigate("/login")}>すでにアカウントをお持ちの方はこちら</p>
         </div>
       </div>
     </div>
@@ -103,14 +138,14 @@ export default function Register() {
 }
 
 const s = {
-  root: { width:"100%", height:"100dvh", background:G, display:"flex", flexDirection:"column", fontFamily:"'Hiragino Sans','Noto Sans JP',sans-serif", maxWidth:430, margin:"0 auto" },
+  root: { width:"100%", height:"100dvh", background:G, display:"flex", flexDirection:"column", fontFamily:"'Hiragino Sans','Noto Sans JP',sans-serif", maxWidth:430, margin:"0 auto", overflow:"hidden" },
   status: { background:G, display:"flex", justifyContent:"space-between", padding:"12px 24px 0", flexShrink:0 },
   statusTime: { color:"white", fontSize:14, fontWeight:600 },
   header: { background:G, padding:"8px 20px 16px", display:"flex", justifyContent:"space-between", alignItems:"center", flexShrink:0 },
   headerTitle: { color:"white", fontSize:20, fontWeight:800 },
   badge: { background:"white", borderRadius:8, padding:"4px 10px" },
   badgeText: { color:G, fontSize:13, fontWeight:700 },
-  scroll: { flex:1, overflowY:"auto", padding:"0 0 40px" },
+  scroll: { flex:1, overflowY:"auto", overflowX:"hidden", padding:"0 0 40px", WebkitOverflowScrolling:"touch" },
   logoArea: { padding:"24px 0 16px", textAlign:"center" },
   logoText: { fontSize:32, fontWeight:800, color:"white", margin:0 },
   card: { background:"white", margin:"0 16px", borderRadius:22, padding:"24px 20px", boxShadow:"0 4px 24px rgba(0,0,0,0.10)" },
@@ -125,4 +160,8 @@ const s = {
   btnSocialDark: { background:"#1C1C1E", color:"white", border:"none" },
   loginLink: { fontSize:12, color:GRAY, textAlign:"center", cursor:"pointer" },
   errorText: { fontSize:13, color:"#D04040", margin:"0 0 12px", textAlign:"center" },
+  successWrap: { flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:16 },
+  successIcon: { width:80, height:80, borderRadius:40, background:"rgba(255,255,255,0.2)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:36, color:"white" },
+  successTitle: { fontSize:22, fontWeight:800, color:"white", margin:0 },
+  successSub: { fontSize:14, color:"rgba(255,255,255,0.75)", margin:0 },
 };

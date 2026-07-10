@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { signInWithPopup } from "firebase/auth";
+import { auth, googleProvider, appleProvider } from "../firebase";
 
 const G = "#2A7A50"; const G2 = "#34A36A"; const GRAY = "#8A8A8E";
 const DARK = "#1C1C1E"; const BORDER = "#F0F0F0";
@@ -25,7 +27,10 @@ export default function Login() {
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.detail || "ログインに失敗しました");
+        const msg = typeof data.detail === "string"
+          ? data.detail
+          : JSON.stringify(data.detail);
+        setError(msg || "ログインに失敗しました");
         return;
       }
       localStorage.setItem("access_token", data.access_token);
@@ -36,6 +41,28 @@ export default function Login() {
       setError("通信エラーが発生しました");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSocialLogin = async (provider) => {
+    setError("");
+    try {
+      const result = await signInWithPopup(auth, provider);
+      const idToken = await result.user.getIdToken();
+      // Firebaseのトークンをlocalstorageに保存してホームへ
+      localStorage.setItem("access_token", idToken);
+      localStorage.setItem("user", JSON.stringify({
+        uid: result.user.uid,
+        email: result.user.email,
+        display_name: result.user.displayName,
+        plan: "free",
+      }));
+      setExiting(true);
+      setTimeout(() => navigate("/home"), 400);
+    } catch (e) {
+      if (e.code !== "auth/popup-closed-by-user") {
+        setError("ログインに失敗しました");
+      }
     }
   };
 
@@ -89,8 +116,12 @@ export default function Login() {
           <p style={s.orText}>または</p>
 
           <div style={s.socialRow}>
-            <button style={s.btnSocial}>Appleでログイン</button>
-            <button style={{ ...s.btnSocial, ...s.btnSocialDark }}>Googleでログイン</button>
+            <button style={s.btnSocial} onClick={() => handleSocialLogin(appleProvider)}>
+              Appleでログイン
+            </button>
+            <button style={{ ...s.btnSocial, ...s.btnSocialDark }} onClick={() => handleSocialLogin(googleProvider)}>
+              Googleでログイン
+            </button>
           </div>
 
           <p style={s.registerLink} onClick={() => navigate("/register")}>
