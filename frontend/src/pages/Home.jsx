@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 
 const G      = "#2A7A50";
@@ -9,7 +9,8 @@ const DARK   = "#1C1C1E";
 const BORDER = "#F0F0F0";
 const BG     = "#F5F8F6";
 
-const tagColor = { "フリマ":"#2A7A50", "買取店":"#E07B00", "処分":"#D04040" };
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
+const tagColor = { "フリマアプリ":"#2A7A50", "買取店":"#E07B00", "処分":"#D04040" };
 
 export default function App() {
   const [tab, setTab] = useState("home");
@@ -25,7 +26,7 @@ export default function App() {
       <div style={s.content}>
         {tab === "home"     && <HomeScreen     key="home"     navigate={navigate} user={user} />}
         {tab === "history"  && <HistoryScreen  key="history"  navigate={navigate} />}
-        {tab === "stats"    && <StatsScreen    key="stats"    />}
+        {tab === "stats"    && <StatsScreen    key="stats" />}
         {tab === "settings" && <SettingsScreen key="settings" navigate={navigate} user={user} />}
       </div>
 
@@ -57,6 +58,31 @@ export default function App() {
 function HomeScreen({ navigate, user }) {
   const [pressingCamera, setPressingCamera] = useState(false);
   const [pressingAlbum,  setPressingAlbum]  = useState(false);
+  const [assessments, setAssessments] = useState([]);
+  const fileInputRef = useRef(null);
+
+  useEffect(() => {
+    const fetchAssessments = async () => {
+      try {
+        const token = localStorage.getItem("access_token") || "";
+        const res = await fetch(`${API_BASE}/assessments`, {
+          headers: { "Authorization": `Bearer ${token}` },
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        const list = data?.data || data || [];
+        setAssessments(Array.isArray(list) ? list : []);
+      } catch (e) {}
+    };
+    fetchAssessments();
+  }, []);
+
+  const totalCount = assessments.length;
+  const soldCount = assessments.filter(a => a.disposal_method).length;
+  const totalPrice = assessments.reduce((sum, a) => {
+    const avg = a.price?.avg || a.estimated_price_max || 0;
+    return sum + avg;
+  }, 0);
 
   const handleCamera = () => {
     setPressingCamera(true);
@@ -64,7 +90,17 @@ function HomeScreen({ navigate, user }) {
   };
   const handleAlbum = () => {
     setPressingAlbum(true);
-    setTimeout(() => { setPressingAlbum(false); navigate("/camera"); }, 180);
+    setTimeout(() => { setPressingAlbum(false); fileInputRef.current.click(); }, 180);
+  };
+  const handleFileSelect = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      sessionStorage.setItem("capturedImage", ev.target.result);
+      navigate("/confirm");
+    };
+    reader.readAsDataURL(file);
   };
 
   return (
@@ -108,12 +144,13 @@ function HomeScreen({ navigate, user }) {
           <AlbumIcon size={14} color={GRAY} />
           <span style={{ marginLeft: 6, color: GRAY, fontSize: 13 }}>アルバムから選ぶ</span>
         </button>
+        <input ref={fileInputRef} type="file" accept="image/*" style={{ display:"none" }} onChange={handleFileSelect} />
       </div>
       <div style={s.miniStats}>
         {[
-          { label:"査定件数",   value:"0件"   },
-          { label:"手放し済み", value:"0件"   },
-          { label:"累計推定額", value:"¥0"    },
+          { label:"査定件数",   value:`${totalCount}件` },
+          { label:"手放し済み", value:`${soldCount}件`  },
+          { label:"累計推定額", value: totalPrice > 0 ? `¥${totalPrice.toLocaleString()}` : "¥0" },
         ].map(({ label, value }) => (
           <div key={label} style={s.miniStatItem}>
             <p style={s.miniStatValue}>{value}</p>
@@ -126,28 +163,144 @@ function HomeScreen({ navigate, user }) {
 }
 
 function HistoryScreen({ navigate }) {
+  const [assessments, setAssessments] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchAssessments = async () => {
+      try {
+        const token = localStorage.getItem("access_token") || "";
+        const res = await fetch(`${API_BASE}/assessments`, {
+          headers: { "Authorization": `Bearer ${token}` },
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        const list = data?.data || data || [];
+        setAssessments(Array.isArray(list) ? list : []);
+      } catch (e) {
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchAssessments();
+  }, []);
+
+  if (loading) {
+    return (
+      <div style={{ ...s.page, gap:0, animation:"fadeIn 0.3s ease forwards" }}>
+        <p style={s.pageTitle}>査定履歴</p>
+        <div style={s.emptyWrap}>
+          <p style={s.emptyIcon}>⏳</p>
+          <p style={s.emptyText}>読み込み中...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (assessments.length === 0) {
+    return (
+      <div style={{ ...s.page, gap:0, animation:"fadeIn 0.3s ease forwards" }}>
+        <p style={s.pageTitle}>査定履歴</p>
+        <div style={s.emptyWrap}>
+          <p style={s.emptyIcon}>📦</p>
+          <p style={s.emptyText}>まだ査定履歴がありません</p>
+          <p style={s.emptySub}>カメラで商品を撮影して査定してみましょう</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div style={{ ...s.page, gap: 0, animation: "fadeIn 0.3s ease forwards" }}>
+    <div style={{ ...s.page, gap:0, animation:"fadeIn 0.3s ease forwards" }}>
       <p style={s.pageTitle}>査定履歴</p>
-      <div style={s.emptyWrap}>
-        <p style={s.emptyIcon}>📦</p>
-        <p style={s.emptyText}>まだ査定履歴がありません</p>
-        <p style={s.emptySub}>カメラで商品を撮影して査定してみましょう</p>
+      <div style={s.historyList}>
+        {assessments.map((item, i) => {
+          const method = item.disposal?.method || item.disposal_method || "";
+          const date = item.created_at
+            ? new Date(item.created_at._seconds ? item.created_at._seconds * 1000 : item.created_at).toLocaleDateString("ja-JP")
+            : "";
+          const priceMin = item.price?.min;
+          const priceMax = item.price?.max;
+          return (
+            <div key={item.id || i}
+              style={{ ...s.historyRow, borderBottom: i < assessments.length - 1 ? `1px solid ${BORDER}` : "none", cursor:"pointer" }}
+              onClick={() => {
+                sessionStorage.setItem("historyDetail", JSON.stringify(item));
+                navigate("/history-detail");
+              }}
+            >
+              <div style={s.rowIcon}>
+                {item.image_url
+                  ? <img src={item.image_url} alt="" style={{ width:"100%", height:"100%", objectFit:"cover", borderRadius:10 }} />
+                  : <CalIcon color={G} />
+                }
+              </div>
+              <div style={s.rowBody}>
+                <p style={s.rowName}>{item.product_name || "商品名不明"}</p>
+                <p style={s.rowDate}>{date}</p>
+              </div>
+              <div style={s.rowRight}>
+                {method && (
+                  <span style={{ ...s.tag, background: (tagColor[method] || GRAY) + "18", color: tagColor[method] || GRAY }}>
+                    {method}
+                  </span>
+                )}
+                <p style={s.rowPrice}>
+                  {priceMin && priceMax ? `¥${priceMin.toLocaleString()}〜¥${priceMax.toLocaleString()}` : ""}
+                </p>
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
 }
 
 function StatsScreen() {
+  const [assessments, setAssessments] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchAssessments = async () => {
+      try {
+        const token = localStorage.getItem("access_token") || "";
+        const res = await fetch(`${API_BASE}/assessments`, {
+          headers: { "Authorization": `Bearer ${token}` },
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        const list = data?.data || data || [];
+        setAssessments(Array.isArray(list) ? list : []);
+      } catch (e) {
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchAssessments();
+  }, []);
+
+  const totalCount = assessments.length;
+  const soldCount = assessments.filter(a => a.disposal_method).length;
+  const prices = assessments.map(a => a.price?.avg || 0).filter(p => p > 0);
+  const totalPrice = prices.reduce((sum, p) => sum + p, 0);
+  const avgPrice = prices.length > 0 ? Math.round(totalPrice / prices.length) : 0;
+
+  const methodCounts = assessments.reduce((acc, a) => {
+    const m = a.disposal?.method || a.disposal_method || "";
+    if (m) acc[m] = (acc[m] || 0) + 1;
+    return acc;
+  }, {});
+
   return (
-    <div style={{ ...s.statsPage, animation: "fadeIn 0.3s ease forwards" }}>
+    <div style={{ ...s.statsPage, animation:"fadeIn 0.3s ease forwards" }}>
       <p style={s.pageTitle}>あなたの実績</p>
       <div style={s.statGrid}>
         {[
-          { label:"総査定数",   value:"0件",  color: G        },
-          { label:"手放し済み", value:"0件",  color:"#E07B00" },
-          { label:"累計推定額", value:"¥0",   color: G        },
-          { label:"平均査定額", value:"¥0",   color:"#5B6CF6" },
+          { label:"総査定数",   value:`${totalCount}件`, color: G        },
+          { label:"手放し済み", value:`${soldCount}件`,  color:"#E07B00" },
+          { label:"累計推定額", value: totalPrice > 0 ? `¥${totalPrice.toLocaleString()}` : "¥0", color: G },
+          { label:"平均査定額", value: avgPrice > 0 ? `¥${avgPrice.toLocaleString()}` : "¥0", color:"#5B6CF6" },
         ].map(({ label, value, color }) => (
           <div key={label} style={s.statCard}>
             <p style={{ ...s.statValue, color }}>{value}</p>
@@ -155,11 +308,31 @@ function StatsScreen() {
           </div>
         ))}
       </div>
-      <div style={s.emptyWrap}>
-        <p style={s.emptyIcon}>📊</p>
-        <p style={s.emptyText}>まだデータがありません</p>
-        <p style={s.emptySub}>査定を行うと統計が表示されます</p>
-      </div>
+
+      {totalCount === 0 ? (
+        <div style={s.emptyWrap}>
+          <p style={s.emptyIcon}>📊</p>
+          <p style={s.emptyText}>まだデータがありません</p>
+          <p style={s.emptySub}>査定を行うと統計が表示されます</p>
+        </div>
+      ) : (
+        <div style={s.breakCard}>
+          <p style={s.breakTitle}>手放し方の内訳</p>
+          {Object.entries(methodCounts).map(([method, count]) => {
+            const pct = Math.round((count / totalCount) * 100);
+            const color = tagColor[method] || GRAY;
+            return (
+              <div key={method} style={s.breakRow}>
+                <span style={s.breakLabel}>{method}</span>
+                <div style={s.breakBarBg}>
+                  <div style={{ ...s.breakBar, width:`${pct}%`, background:color }} />
+                </div>
+                <span style={{ ...s.breakPct, color }}>{count}件</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
@@ -172,19 +345,19 @@ function SettingsScreen({ navigate, user }) {
   };
 
   const items = [
-    { label:"アカウント情報",       action: null         },
-    { label:"通知設定",             action: null         },
+    { label:"アカウント情報",       action: null },
+    { label:"通知設定",             action: null },
     { label:"プラン",               action: () => navigate("/plan") },
-    { label:"利用規約",             action: null         },
-    { label:"プライバシーポリシー", action: null         },
+    { label:"利用規約",             action: null },
+    { label:"プライバシーポリシー", action: null },
     { label:"ログアウト",           action: handleLogout, red: true },
   ];
 
   return (
-    <div style={{ ...s.page, gap: 0, animation: "fadeIn 0.3s ease forwards" }}>
+    <div style={{ ...s.page, gap:0, animation:"fadeIn 0.3s ease forwards" }}>
       <div style={s.userCard}>
         <div style={s.userAvatar}>
-          <span style={{ fontSize: 28 }}>👤</span>
+          <span style={{ fontSize:28 }}>👤</span>
         </div>
         <div>
           <p style={s.userName}>{user?.display_name || "ユーザー"}</p>
@@ -198,7 +371,7 @@ function SettingsScreen({ navigate, user }) {
             onClick={() => action && action()}
           >
             <span style={{ ...s.settingLabel, color: red ? "#D04040" : DARK }}>{label}</span>
-            <span style={{ color: GRAY, fontSize: 16 }}>›</span>
+            <span style={{ color:GRAY, fontSize:16 }}>›</span>
           </div>
         ))}
       </div>
@@ -220,6 +393,15 @@ function AlbumIcon({ size, color }) {
       <rect x="3" y="3" width="18" height="18" rx="2"/>
       <circle cx="8.5" cy="8.5" r="1.5"/>
       <polyline points="21 15 16 10 5 21"/>
+    </svg>
+  );
+}
+function CalIcon({ color }) {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="4" width="18" height="18" rx="2"/>
+      <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
+      <line x1="3" y1="10" x2="21" y2="10"/>
     </svg>
   );
 }
@@ -266,7 +448,7 @@ const TABS = [
 
 const s = {
   root: { width:"100%", height:"100dvh", background:BG, display:"flex", flexDirection:"column", fontFamily:"'Hiragino Sans','Noto Sans JP',sans-serif", overflow:"hidden", maxWidth:430, margin:"0 auto" },
-  header: { background:G, padding:"16px 20px 16px", display:"flex", alignItems:"center", flexShrink:0 },
+  header: { background:G, padding:"16px 20px", display:"flex", alignItems:"center", flexShrink:0 },
   logo: { color:"white", fontSize:22, fontWeight:800 },
   content: { flex:1, overflow:"hidden", display:"flex", flexDirection:"column" },
   page: { flex:1, padding:"16px 16px 0", display:"flex", flexDirection:"column", gap:14, overflow:"hidden" },
@@ -283,6 +465,15 @@ const s = {
   miniStatItem: { flex:1, padding:"14px 8px", textAlign:"center", borderRight:`1px solid ${BORDER}` },
   miniStatValue: { fontSize:15, fontWeight:800, color:G, margin:"0 0 3px" },
   miniStatLabel: { fontSize:10, color:GRAY, margin:0 },
+  historyList: { background:"white", borderRadius:18, overflow:"auto", flex:1, boxShadow:"0 2px 12px rgba(0,0,0,0.05)" },
+  historyRow: { display:"flex", alignItems:"center", padding:"13px 16px", gap:12 },
+  rowIcon: { width:36, height:36, borderRadius:10, background:GL, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, overflow:"hidden" },
+  rowBody: { flex:1, minWidth:0 },
+  rowName: { fontSize:13, fontWeight:600, color:DARK, margin:0, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" },
+  rowDate: { fontSize:11, color:GRAY, margin:"3px 0 0" },
+  rowRight: { display:"flex", flexDirection:"column", alignItems:"flex-end", gap:4 },
+  tag: { fontSize:10, fontWeight:700, padding:"2px 7px", borderRadius:20 },
+  rowPrice: { fontSize:11, color:GRAY, margin:0 },
   emptyWrap: { flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:8 },
   emptyIcon: { fontSize:40, margin:0 },
   emptyText: { fontSize:15, fontWeight:700, color:DARK, margin:0 },
@@ -292,6 +483,13 @@ const s = {
   statCard: { background:"white", borderRadius:16, padding:"14px 16px", boxShadow:"0 2px 10px rgba(0,0,0,0.05)" },
   statValue: { fontSize:20, fontWeight:800, margin:"0 0 4px" },
   statLabel: { fontSize:11, color:GRAY, margin:0 },
+  breakCard: { background:"white", borderRadius:16, padding:"14px 16px", boxShadow:"0 2px 10px rgba(0,0,0,0.05)", marginBottom:16 },
+  breakTitle: { fontSize:13, fontWeight:700, color:DARK, margin:"0 0 12px" },
+  breakRow: { display:"flex", alignItems:"center", gap:10, marginBottom:10 },
+  breakLabel: { fontSize:12, color:DARK, width:60, flexShrink:0 },
+  breakBarBg: { flex:1, height:8, borderRadius:4, background:BORDER },
+  breakBar: { height:8, borderRadius:4 },
+  breakPct: { fontSize:12, fontWeight:700, width:24, textAlign:"right" },
   userCard: { background:"white", borderRadius:18, padding:"16px", display:"flex", alignItems:"center", gap:14, boxShadow:"0 2px 12px rgba(0,0,0,0.05)", marginBottom:12 },
   userAvatar: { width:52, height:52, borderRadius:26, background:GL, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 },
   userName: { fontSize:15, fontWeight:700, color:DARK, margin:"0 0 3px" },

@@ -2,66 +2,64 @@ import { useNavigate } from "react-router-dom";
 const G = "#2A7A50"; const G2 = "#34A36A"; const GL = "#E6F4EC";
 const GRAY = "#8A8A8E"; const DARK = "#1C1C1E"; const BORDER = "#F0F0F0"; const BG = "#F5F8F6";
 
-export default function Result() {
+export default function HistoryDetail() {
   const navigate = useNavigate();
 
-  const raw = sessionStorage.getItem("assessmentResult");
-  const result = raw ? JSON.parse(raw) : null;
-  const data = result?.data || result || {};
-  const image = sessionStorage.getItem("capturedImage");
+  const raw = sessionStorage.getItem("historyDetail");
+  const item = raw ? JSON.parse(raw) : {};
 
-  const priceMin = data?.price?.min;
-  const priceMax = data?.price?.max;
-  const priceAvg = data?.price?.avg;
-  const priceSummary = data?.price?.summary;
-  const disposalMethod = data?.disposal?.method;
-  const disposalReason = data?.disposal?.reason;
-
+  const priceMin = item?.price?.min;
+  const priceMax = item?.price?.max;
+  const priceAvg = item?.price?.avg;
+  const priceSummary = item?.price?.summary;
+  const disposalMethod = item?.disposal?.method;
+  const disposalReason = item?.disposal?.reason;
   const fee = priceAvg ? Math.round(priceAvg * 0.1) : null;
   const takeHome = priceAvg && fee ? priceAvg - fee : null;
 
-  const positionPct = priceMin && priceMax && priceAvg
-    ? Math.min(100, Math.max(0, (priceAvg - priceMin) / (priceMax - priceMin) * 100))
-    : null;
-
-  const positionLabel = positionPct === null ? null
-    : positionPct < 25 ? "相場より安め 🟢"
-    : positionPct < 50 ? "相場の下位 🟡"
-    : positionPct < 75 ? "相場のほぼ中間 🟠"
-    : "相場より高め 🔴";
+  const date = item?.created_at
+    ? new Date(item.created_at._seconds ? item.created_at._seconds * 1000 : item.created_at).toLocaleDateString("ja-JP")
+    : "";
 
   return (
     <div style={s.root}>
-      <div style={s.header}>
+        <div style={s.header}>
+        <button style={s.backBtn} onClick={() => navigate("/home")}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="15 18 9 12 15 6"/>
+            </svg>
+        </button>
+        <span style={s.headerTitle}>査定詳細</span>
         <div style={{ width:40 }} />
-        <span style={s.headerTitle}>査定結果</span>
-        <div style={{ width:40 }} />
-      </div>
-
-      <div style={s.scroll}>
-        <div style={s.imgWrap}>
-          {image
-            ? <img src={image} alt="商品画像" style={s.img} />
-            : <p style={s.imgPlaceholder}>商品画像</p>
-          }
         </div>
 
+      <div style={s.scroll}>
+        {/* 商品画像 */}
+        <div style={s.imgWrap}>
+          {item?.image_url ? (
+            <img src={item.image_url} alt="商品画像" style={s.img} />
+          ) : (
+            <p style={s.imgPlaceholder}>画像なし</p>
+          )}
+        </div>
+
+        {/* 商品情報 */}
         <div style={s.card}>
           <div style={s.productRow}>
             <div style={s.thumb}>
-              {image && <img src={image} alt="" style={s.thumbImg} />}
+              {item?.image_url && <img src={item.image_url} alt="" style={s.thumbImg} />}
             </div>
             <div style={s.productInfo}>
               <p style={s.productDesc}>
-                {data?.category || "カテゴリ不明"}{data?.brand ? ` / ${data.brand}` : ""}
+                {item?.category || "カテゴリ不明"}{item?.brand ? ` / ${item.brand}` : ""}
               </p>
-              <p style={s.productName}>{data?.product_name || "商品名不明"}</p>
-              <p style={{ fontSize:11, color:GRAY, margin:"4px 0 0" }}>
-                状態：{data?.condition || "不明"}
-              </p>
+              <p style={s.productName}>{item?.product_name || "商品名不明"}</p>
+              <p style={s.productDate}>査定日：{date}</p>
+              <p style={s.productCond}>状態：{item?.condition || "不明"}</p>
             </div>
           </div>
 
+          {/* 価格 */}
           <div style={s.priceRow}>
             <div style={s.priceBox}>
               <p style={s.priceLabel}>市場相場</p>
@@ -80,29 +78,11 @@ export default function Result() {
           </div>
 
           {priceSummary && (
-            <p style={{ fontSize:12, color:GRAY, margin:0, lineHeight:1.6 }}>
-              💡 {priceSummary}
-            </p>
-          )}
-
-          {positionPct !== null && (
-            <div style={s.positionWrap}>
-              <div style={s.positionHeader}>
-                <span style={s.positionLabel}>相場内の位置</span>
-                <span style={s.positionBadge}>{positionLabel}</span>
-              </div>
-              <div style={s.positionBarBg}>
-                <div style={{ ...s.positionBarFill, width:`${positionPct}%` }} />
-                <div style={{ ...s.positionMarker, left:`${positionPct}%` }} />
-              </div>
-              <div style={s.positionRange}>
-                <span>¥{priceMin.toLocaleString()}</span>
-                <span>¥{priceMax.toLocaleString()}</span>
-              </div>
-            </div>
+            <p style={s.priceSummary}>💡 {priceSummary}</p>
           )}
         </div>
 
+        {/* 手取り内訳 */}
         {priceAvg && (
           <div style={s.card}>
             <p style={s.cardTitle}>手取り内訳（メルカリ想定）</p>
@@ -119,19 +99,25 @@ export default function Result() {
           </div>
         )}
 
+        {/* 手放し方 */}
         {disposalMethod && (
           <div style={s.card}>
             <p style={s.cardTitle}>おすすめの手放し方</p>
             <div style={s.disposalRow}>
               <span style={s.disposalBadge}>{disposalMethod}</span>
-              <p style={s.disposalReason}>{disposalReason}</p>
+              {disposalReason && <p style={s.disposalReason}>{disposalReason}</p>}
             </div>
           </div>
         )}
 
-        <button style={s.btnPrimary} onClick={() => navigate("/proposal")}>
-          手放し方を提案する
-        </button>
+        {/* データなしの場合 */}
+        {!priceAvg && !disposalMethod && (
+          <div style={s.emptyCard}>
+            <p style={s.emptyIcon}>📭</p>
+            <p style={s.emptyText}>この査定は価格・手放し方データがありません</p>
+            <p style={s.emptySub}>逆質問の途中で終了した可能性があります</p>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -139,8 +125,9 @@ export default function Result() {
 
 const s = {
   root: { width:"100%", height:"100dvh", background:BG, display:"flex", flexDirection:"column", fontFamily:"'Hiragino Sans','Noto Sans JP',sans-serif", maxWidth:430, margin:"0 auto" },
-  header: { background:G, padding:"12px 16px", display:"flex", justifyContent:"space-between", alignItems:"center", flexShrink:0 },
-  headerTitle: { color:"white", fontSize:17, fontWeight:700 },
+  header: { background:G, padding:"12px 16px", display:"flex", alignItems:"center", justifyContent:"space-between", flexShrink:0 },
+backBtn: { width:40, height:40, borderRadius:20, background:"rgba(255,255,255,0.15)", border:"none", color:"white", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", padding:0 },
+headerTitle: { color:"white", fontSize:17, fontWeight:700 },
   scroll: { flex:1, overflowY:"auto", padding:"16px 16px 40px", display:"flex", flexDirection:"column", gap:12 },
   imgWrap: { width:"100%", height:200, background:"#e0e0e0", borderRadius:16, overflow:"hidden", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 },
   img: { width:"100%", height:"100%", objectFit:"cover", display:"block" },
@@ -151,19 +138,14 @@ const s = {
   thumbImg: { width:"100%", height:"100%", objectFit:"cover" },
   productInfo: { flex:1 },
   productDesc: { fontSize:11, color:GRAY, margin:"0 0 4px" },
-  productName: { fontSize:15, fontWeight:700, color:DARK, margin:0 },
+  productName: { fontSize:15, fontWeight:700, color:DARK, margin:"0 0 4px" },
+  productDate: { fontSize:11, color:GRAY, margin:"0 0 2px" },
+  productCond: { fontSize:11, color:GRAY, margin:0 },
   priceRow: { display:"flex", gap:10 },
-  priceBox: { flex:1, background:BG, borderRadius:12, padding:"12px", textAlign:"center" },
+  priceBox: { flex:1, background:GL, borderRadius:12, padding:"12px", textAlign:"center" },
   priceLabel: { fontSize:11, color:GRAY, margin:"0 0 4px" },
   priceValue: { fontSize:14, fontWeight:800, color:DARK, margin:0 },
-  positionWrap: { display:"flex", flexDirection:"column", gap:8, padding:"12px", background:BG, borderRadius:12 },
-  positionHeader: { display:"flex", justifyContent:"space-between", alignItems:"center" },
-  positionLabel: { fontSize:12, color:GRAY, fontWeight:600 },
-  positionBadge: { fontSize:12, fontWeight:700, color:DARK },
-  positionBarBg: { height:8, background:BORDER, borderRadius:4, position:"relative", overflow:"visible" },
-  positionBarFill: { height:"100%", background:`linear-gradient(90deg,${G},${G2})`, borderRadius:4 },
-  positionMarker: { position:"absolute", top:"50%", transform:"translate(-50%,-50%)", width:14, height:14, borderRadius:7, background:G, border:"2px solid white", boxShadow:"0 2px 6px rgba(0,0,0,0.2)" },
-  positionRange: { display:"flex", justifyContent:"space-between", fontSize:11, color:GRAY },
+  priceSummary: { fontSize:12, color:GRAY, margin:0, lineHeight:1.6 },
   cardTitle: { fontSize:13, fontWeight:700, color:DARK, margin:0 },
   breakRow: { display:"flex", justifyContent:"space-between", alignItems:"center" },
   breakLabel: { fontSize:13 },
@@ -171,5 +153,8 @@ const s = {
   disposalRow: { display:"flex", flexDirection:"column", gap:8 },
   disposalBadge: { background:G, color:"white", fontSize:13, fontWeight:700, padding:"4px 12px", borderRadius:20, alignSelf:"flex-start" },
   disposalReason: { fontSize:13, color:GRAY, margin:0, lineHeight:1.6 },
-  btnPrimary: { width:"100%", padding:"16px", background:`linear-gradient(135deg,${G} 0%,${G2} 100%)`, color:"white", border:"none", borderRadius:16, fontSize:16, fontWeight:700, fontFamily:"inherit", cursor:"pointer", boxShadow:`0 4px 16px rgba(42,122,80,0.28)` },
+  emptyCard: { background:"white", borderRadius:18, padding:"32px 16px", boxShadow:"0 2px 12px rgba(0,0,0,0.06)", display:"flex", flexDirection:"column", alignItems:"center", gap:8 },
+  emptyIcon: { fontSize:36, margin:0 },
+  emptyText: { fontSize:14, fontWeight:700, color:DARK, margin:0, textAlign:"center" },
+  emptySub: { fontSize:12, color:GRAY, margin:0, textAlign:"center" },
 };

@@ -8,10 +8,15 @@ export default function Confirm() {
   return (
     <div style={s.root}>
       <div style={s.header}>
-        <button style={s.backBtn} onClick={() => navigate(-1)}>‹ 戻る</button>
+        <button style={s.backBtn} onClick={() => navigate(-1)}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="15 18 9 12 15 6"/>
+          </svg>
+        </button>
+        <span style={s.headerTitle}>確認</span>
+        <div style={{ width:40 }} />
       </div>
 
-      {/* 画像プレビュー */}
       <div style={s.preview}>
         <div style={s.imgWrap}>
           {image ? (
@@ -22,7 +27,6 @@ export default function Confirm() {
         </div>
       </div>
 
-      {/* ボタン + AIメッセージ */}
       <div style={s.bottom}>
         <div style={s.btnRow}>
           <button style={s.btnRetake} onClick={() => navigate(-1)}>撮り直す</button>
@@ -36,8 +40,9 @@ export default function Confirm() {
 
 const s = {
   root: { width:"100%", height:"100dvh", background:G, display:"flex", flexDirection:"column", fontFamily:"'Hiragino Sans','Noto Sans JP',sans-serif", maxWidth:430, margin:"0 auto" },
-  header: { background:"transparent", padding:"16px 20px 8px", display:"flex", alignItems:"center", flexShrink:0 },
-  backBtn: { background:"rgba(0,0,0,0.2)", border:"none", color:"white", fontSize:16, fontWeight:600, cursor:"pointer", fontFamily:"inherit", borderRadius:20, padding:"6px 14px" },
+  header: { background:"rgba(0,0,0,0.2)", padding:"12px 16px", display:"flex", justifyContent:"space-between", alignItems:"center", flexShrink:0 },
+  backBtn: { width:40, height:40, borderRadius:20, background:"rgba(255,255,255,0.15)", border:"none", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", padding:0 },
+  headerTitle: { color:"white", fontSize:17, fontWeight:700 },
   preview: { flex:1, display:"flex", alignItems:"center", justifyContent:"center", padding:20 },
   imgWrap: { width:"100%", maxHeight:460, borderRadius:18, background:"rgba(255,255,255,0.12)", display:"flex", alignItems:"center", justifyContent:"center", aspectRatio:"4/3", overflow:"hidden" },
   img: { width:"100%", height:"100%", objectFit:"cover", display:"block" },

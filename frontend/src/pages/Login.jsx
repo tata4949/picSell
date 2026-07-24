@@ -71,7 +71,9 @@ export default function Login() {
       transition: exiting ? "transform 0.4s cubic-bezier(0.4,0,0.2,1)" : "none",
     }}>
       <div style={s.header}>
+        <div style={{ width:40 }} />
         <span style={s.headerTitle}>ログイン</span>
+        <div style={{ width:40 }} />
       </div>
 
       <div style={s.scroll}>
@@ -137,8 +139,8 @@ function CamIcon({ size, color }) {
 
 const s = {
   root: { width:"100%", height:"100dvh", background:G, display:"flex", flexDirection:"column", fontFamily:"'Hiragino Sans','Noto Sans JP',sans-serif", maxWidth:430, margin:"0 auto", overflow:"hidden" },
-  header: { background:G, padding:"16px 20px", display:"flex", alignItems:"center", flexShrink:0 },
-  headerTitle: { color:"white", fontSize:20, fontWeight:800 },
+  header: { background:G, padding:"12px 16px", display:"flex", justifyContent:"space-between", alignItems:"center", flexShrink:0 },
+  headerTitle: { color:"white", fontSize:17, fontWeight:700 },
   scroll: { flex:1, overflowY:"auto", overflowX:"hidden", padding:"0 0 40px", WebkitOverflowScrolling:"touch" },
   logoArea: { display:"flex", flexDirection:"column", alignItems:"center", padding:"32px 0 24px", gap:10 },
   logoCircle: { width:72, height:72, borderRadius:36, background:`linear-gradient(135deg,${G} 0%,${G2} 100%)`, display:"flex", alignItems:"center", justifyContent:"center", boxShadow:"0 6px 20px rgba(42,122,80,0.35)" },

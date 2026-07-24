@@ -81,7 +81,13 @@ export default function Register() {
   return (
     <div style={s.root}>
       <div style={s.header}>
+        <button style={s.backBtn} onClick={() => navigate("/login")}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="15 18 9 12 15 6"/>
+          </svg>
+        </button>
         <span style={s.headerTitle}>新規登録</span>
+        <div style={{ width:40 }} />
       </div>
 
       <div style={s.scroll}>
@@ -122,8 +128,9 @@ export default function Register() {
 
 const s = {
   root: { width:"100%", height:"100dvh", background:G, display:"flex", flexDirection:"column", fontFamily:"'Hiragino Sans','Noto Sans JP',sans-serif", maxWidth:430, margin:"0 auto", overflow:"hidden" },
-  header: { background:G, padding:"16px 20px", display:"flex", alignItems:"center", flexShrink:0 },
-  headerTitle: { color:"white", fontSize:20, fontWeight:800 },
+  header: { background:G, padding:"12px 16px", display:"flex", justifyContent:"space-between", alignItems:"center", flexShrink:0 },
+  backBtn: { width:40, height:40, borderRadius:20, background:"rgba(255,255,255,0.15)", border:"none", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", padding:0 },
+  headerTitle: { color:"white", fontSize:17, fontWeight:700 },
   scroll: { flex:1, overflowY:"auto", overflowX:"hidden", padding:"0 0 40px", WebkitOverflowScrolling:"touch" },
   logoArea: { padding:"24px 0 16px", textAlign:"center" },
   logoText: { fontSize:32, fontWeight:800, color:"white", margin:0 },

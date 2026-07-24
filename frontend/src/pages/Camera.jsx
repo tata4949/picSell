@@ -43,7 +43,6 @@ export default function Camera() {
     canvas.height = videoRef.current.videoHeight;
     canvas.getContext("2d").drawImage(videoRef.current, 0, 0);
     const dataUrl = canvas.toDataURL("image/jpeg");
-    // 撮影した画像をsessionStorageに保存して確認画面へ
     sessionStorage.setItem("capturedImage", dataUrl);
     if (streamRef.current) streamRef.current.getTracks().forEach(t => t.stop());
     navigate("/confirm");
@@ -65,16 +64,23 @@ export default function Camera() {
     setFacingMode(prev => prev === "environment" ? "user" : "environment");
   };
 
+  const handleBack = () => {
+    if (streamRef.current) streamRef.current.getTracks().forEach(t => t.stop());
+    navigate(-1);
+  };
+
   return (
     <div style={s.root}>
       <div style={s.header}>
-        <button style={s.backBtn} onClick={() => {
-          if (streamRef.current) streamRef.current.getTracks().forEach(t => t.stop());
-          navigate(-1);
-        }}>‹ 戻る</button>
+        <button style={s.backBtn} onClick={handleBack}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="15 18 9 12 15 6"/>
+          </svg>
+        </button>
+        <span style={s.headerTitle}>撮影</span>
+        <div style={{ width:40 }} />
       </div>
 
-      {/* カメラプレビュー */}
       <div style={s.preview}>
         {error ? (
           <p style={s.errorText}>{error}</p>
@@ -85,9 +91,7 @@ export default function Camera() {
         <p style={s.guide}>商品全体が枠に収まるように撮影してください</p>
       </div>
 
-      {/* コントロール */}
       <div style={s.controls}>
-        {/* アルバム */}
         <button style={s.ctrlBtn} onClick={() => fileInputRef.current.click()}>
           🖼
         </button>
@@ -95,16 +99,12 @@ export default function Camera() {
           ref={fileInputRef}
           type="file"
           accept="image/*"
-          style={{ display: "none" }}
+          style={{ display:"none" }}
           onChange={handleAlbum}
         />
-
-        {/* シャッター */}
         <button style={s.shutter} onClick={handleShutter}>
           <div style={s.shutterInner} />
         </button>
-
-        {/* カメラ切り替え */}
         <button style={s.ctrlBtn} onClick={handleFlip}>🔄</button>
       </div>
     </div>
@@ -113,8 +113,9 @@ export default function Camera() {
 
 const s = {
   root: { width:"100%", height:"100dvh", background:"#000", display:"flex", flexDirection:"column", fontFamily:"'Hiragino Sans','Noto Sans JP',sans-serif", maxWidth:430, margin:"0 auto" },
-  header: { background:"transparent", padding:"16px 20px 8px", display:"flex", alignItems:"center", flexShrink:0, position:"absolute", top:0, left:0, right:0, zIndex:10 },
-  backBtn: { background:"rgba(0,0,0,0.4)", border:"none", color:"white", fontSize:16, fontWeight:600, cursor:"pointer", fontFamily:"inherit", borderRadius:20, padding:"6px 14px" },
+  header: { background:"rgba(0,0,0,0.4)", padding:"12px 16px", display:"flex", justifyContent:"space-between", alignItems:"center", flexShrink:0, position:"absolute", top:0, left:0, right:0, zIndex:10 },
+  backBtn: { width:40, height:40, borderRadius:20, background:"rgba(255,255,255,0.15)", border:"none", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", padding:0 },
+  headerTitle: { color:"white", fontSize:17, fontWeight:700 },
   preview: { flex:1, position:"relative", overflow:"hidden", display:"flex", alignItems:"center", justifyContent:"center" },
   video: { position:"absolute", inset:0, width:"100%", height:"100%", objectFit:"cover" },
   focusFrame: { width:220, height:220, border:"2px solid rgba(255,255,255,0.7)", borderRadius:16, position:"absolute", zIndex:2 },
